@@ -28,6 +28,8 @@ typedef struct {
   Cell key;
 } CellEntry;
 
+// TODO: Improve efficiency
+// TODO: add ability to parse state strings
 int main(int argc, char *argv[]) {
 
   SetTraceLogLevel(LOG_WARNING);
