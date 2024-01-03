@@ -17,6 +17,7 @@
 #define ZOOM_INCREMENT 0.050f
 #define MINIMUM_ZOOM 0.250f
 #define CELLS_INIT_CAPACITY 256
+#define STEP_DELTA 0.1f
 
 typedef struct {
   int x;
@@ -38,6 +39,8 @@ int main(int argc, char *argv[]) {
   Camera2D camera = {0};
   camera.zoom = 1.0f;
   bool shouldDrawGrid = true;
+  bool shouldRunSimluation = false;
+  float time = 0.0f;
 
   while (!WindowShouldClose()) {
     // Zoom
@@ -110,6 +113,51 @@ int main(int argc, char *argv[]) {
     // Toggle grid drawing
     if (IsKeyPressed(KEY_G)) {
       shouldDrawGrid ^= true;
+    }
+
+    if (IsKeyPressed(KEY_S)) {
+      shouldRunSimluation ^= true;
+      time = STEP_DELTA;
+    }
+
+    if (shouldRunSimluation) {
+      if (time < STEP_DELTA) {
+        time += GetFrameTime();
+      } else {
+        time = 0.0;
+        Vector3 min = {FLT_MAX, FLT_MAX, 0};
+        Vector3 max = {FLT_MIN, FLT_MIN, 0};
+        for (int i = 0; i < hmlen(aliveCells); i++) {
+          min = Vector3Min(min, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
+          max = Vector3Max(max, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
+        }
+        for (int x = min.x - 1; x <= max.x + 1; x++) {
+          for (int y = min.y - 1; y <= max.y + 1; y++) {
+            int aliveNeighbours = 0;
+            for (int dx = -1; dx <= 1; dx++) {
+              for (int dy = -1; dy <= 1; dy++) {
+                if (dy == 0 && dx == 0) {
+                  continue;
+                }
+                Cell neighbourCell = {x + dx, y + dy};
+                if (hmgeti(aliveCells, neighbourCell) >= 0) {
+                  aliveNeighbours++;
+                }
+              }
+            }
+            CellEntry cellEntry = (CellEntry){(Cell){x, y}};
+            bool isAlive = hmgeti(aliveCells, cellEntry.key) >= 0;
+            if (isAlive && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
+              hmputs(nextAliveCells, cellEntry);
+            } else if (!isAlive && aliveNeighbours == 3) {
+              hmputs(nextAliveCells, cellEntry);
+            }
+          }
+        }
+        hmfree(aliveCells);
+        aliveCells = nextAliveCells;
+        nextAliveCells = NULL;
+      }
     }
 
     BeginDrawing();

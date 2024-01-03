@@ -11,7 +11,7 @@ LIBS=$(wildcard $(LIBDIR)/*.c)
 LIBSOBJS=$(patsubst $(LIBDIR)/%.c, $(LIBOBJDIR)/%.o, $(LIBS))
 DEPS=$(patsubst $(SRCDIR)/%.c, $(DEPDIR)/%.d, $(SRCS))
 BIN=$(BINDIR)/GameOfLife
-CFLAGS=-std=c99 -Wpedantic -Wextra -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter  -O2 -D _GNU_SOURCE -Wno-format-overflow
+CFLAGS= -std=gnu11 -Wpedantic -Wextra -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter  -O2 -D _GNU_SOURCE -Wno-format-overflow
 DEPFLAGS=-MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 LDFLAGS= -lm -lraylib
 PREFIX=/usr
