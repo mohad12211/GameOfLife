@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
     if (shouldRunSimluation) {
       if (time < STEP_DELTA) {
         time += GetFrameTime();
-      } else {
+      } else if (hmlen(aliveCells) > 0) {
         time = 0.0;
         Vector3 min = {FLT_MAX, FLT_MAX, 0};
         Vector3 max = {FLT_MIN, FLT_MIN, 0};
