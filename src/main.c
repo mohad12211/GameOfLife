@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <float.h>
 #include <raylib.h>
 #include <raymath.h>
@@ -28,8 +29,75 @@ typedef struct {
   Cell key;
 } CellEntry;
 
-// TODO: Improve efficiency
-// TODO: add ability to parse state strings
+CellEntry *parseRLE(const char *str);
+void nextGeneration(CellEntry **aliveCellsPtr, CellEntry **nextAliveCellsPtr);
+
+CellEntry *parseRLE(const char *str) {
+  CellEntry *aliveCells = NULL;
+  int n, x, y = 0;
+  for (size_t i = 0; i < strlen(str); i++) {
+    char c = str[i];
+    if (isdigit(c)) {
+      n = n * 10 + (c - '0');
+    } else if (c == '$') {
+      y++;
+      x = 0;
+      n = 0;
+    } else if (c == 'b') {
+      x += n != 0 ? n : 1;
+      n = 0;
+    } else if (c == 'o') {
+      n = n != 0 ? n : 1;
+      for (int j = 0; j < n; j++, x++) {
+        CellEntry cellEntry = {(Cell){x, y}};
+        hmputs(aliveCells, cellEntry);
+      }
+      n = 0;
+    }
+  }
+  return aliveCells;
+}
+
+void nextGeneration(CellEntry **aliveCellsPtr, CellEntry **nextAliveCellsPtr) {
+  CellEntry *aliveCells = *aliveCellsPtr;
+  CellEntry *nextAliveCells = *nextAliveCellsPtr;
+
+  Vector3 min = {FLT_MAX, FLT_MAX, 0};
+  Vector3 max = {FLT_MIN, FLT_MIN, 0};
+  for (int i = 0; i < hmlen(aliveCells); i++) {
+    min = Vector3Min(min, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
+    max = Vector3Max(max, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
+  }
+  for (int x = min.x - 1; x <= max.x + 1; x++) {
+    for (int y = min.y - 1; y <= max.y + 1; y++) {
+      int aliveNeighbours = 0;
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          if (dy == 0 && dx == 0) {
+            continue;
+          }
+          Cell neighbourCell = {x + dx, y + dy};
+          if (hmgeti(aliveCells, neighbourCell) >= 0) {
+            aliveNeighbours++;
+          }
+        }
+      }
+      CellEntry cellEntry = (CellEntry){(Cell){x, y}};
+      bool isAlive = hmgeti(aliveCells, cellEntry.key) >= 0;
+      if (isAlive && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
+        hmputs(nextAliveCells, cellEntry);
+      } else if (!isAlive && aliveNeighbours == 3) {
+        hmputs(nextAliveCells, cellEntry);
+      }
+    }
+  }
+
+  // PERFORMANCE: Find a way to not free the hashmap (somehow implement hmclear)
+  hmfree(aliveCells);
+  *aliveCellsPtr = nextAliveCells;
+  *nextAliveCellsPtr = NULL;
+}
+
 int main(int argc, char *argv[]) {
 
   SetTraceLogLevel(LOG_WARNING);
@@ -76,43 +144,10 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    // Step to the next generation
     if (IsKeyPressed(KEY_SPACE)) {
-      Vector3 min = {FLT_MAX, FLT_MAX, 0};
-      Vector3 max = {FLT_MIN, FLT_MIN, 0};
-      for (int i = 0; i < hmlen(aliveCells); i++) {
-        min = Vector3Min(min, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
-        max = Vector3Max(max, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
-      }
-      for (int x = min.x - 1; x <= max.x + 1; x++) {
-        for (int y = min.y - 1; y <= max.y + 1; y++) {
-          int aliveNeighbours = 0;
-          for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-              if (dy == 0 && dx == 0) {
-                continue;
-              }
-              Cell neighbourCell = {x + dx, y + dy};
-              if (hmgeti(aliveCells, neighbourCell) >= 0) {
-                aliveNeighbours++;
-              }
-            }
-          }
-          CellEntry cellEntry = (CellEntry){(Cell){x, y}};
-          bool isAlive = hmgeti(aliveCells, cellEntry.key) >= 0;
-          if (isAlive && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
-            hmputs(nextAliveCells, cellEntry);
-          } else if (!isAlive && aliveNeighbours == 3) {
-            hmputs(nextAliveCells, cellEntry);
-          }
-        }
-      }
-      hmfree(aliveCells);
-      aliveCells = nextAliveCells;
-      nextAliveCells = NULL;
+      nextGeneration(&aliveCells, &nextAliveCells);
     }
 
-    // Toggle grid drawing
     if (IsKeyPressed(KEY_G)) {
       shouldDrawGrid ^= true;
     }
@@ -122,43 +157,22 @@ int main(int argc, char *argv[]) {
       time = STEP_DELTA;
     }
 
+    if (IsKeyPressed(KEY_L)) {
+      const char *clipboardText = GetClipboardText();
+      hmfree(aliveCells);
+      aliveCells = parseRLE(clipboardText);
+#if defined(PLATFORM_WEB)
+      free(clipboardText);
+#endif
+    }
+
+    // Run simluation every STEP_DELTA seconds
     if (shouldRunSimluation) {
       if (time < STEP_DELTA) {
         time += GetFrameTime();
       } else if (hmlen(aliveCells) > 0) {
-        time = 0.0;
-        Vector3 min = {FLT_MAX, FLT_MAX, 0};
-        Vector3 max = {FLT_MIN, FLT_MIN, 0};
-        for (int i = 0; i < hmlen(aliveCells); i++) {
-          min = Vector3Min(min, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
-          max = Vector3Max(max, (Vector3){aliveCells[i].key.x, aliveCells[i].key.y, 0});
-        }
-        for (int x = min.x - 1; x <= max.x + 1; x++) {
-          for (int y = min.y - 1; y <= max.y + 1; y++) {
-            int aliveNeighbours = 0;
-            for (int dx = -1; dx <= 1; dx++) {
-              for (int dy = -1; dy <= 1; dy++) {
-                if (dy == 0 && dx == 0) {
-                  continue;
-                }
-                Cell neighbourCell = {x + dx, y + dy};
-                if (hmgeti(aliveCells, neighbourCell) >= 0) {
-                  aliveNeighbours++;
-                }
-              }
-            }
-            CellEntry cellEntry = (CellEntry){(Cell){x, y}};
-            bool isAlive = hmgeti(aliveCells, cellEntry.key) >= 0;
-            if (isAlive && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
-              hmputs(nextAliveCells, cellEntry);
-            } else if (!isAlive && aliveNeighbours == 3) {
-              hmputs(nextAliveCells, cellEntry);
-            }
-          }
-        }
-        hmfree(aliveCells);
-        aliveCells = nextAliveCells;
-        nextAliveCells = NULL;
+        time = 0.0f;
+        nextGeneration(&aliveCells, &nextAliveCells);
       }
     }
 
