@@ -34,7 +34,7 @@ void nextGeneration(CellEntry **aliveCellsPtr, CellEntry **nextAliveCellsPtr);
 
 CellEntry *parseRLE(const char *str) {
   CellEntry *aliveCells = NULL;
-  int n, x, y = 0;
+  int n = 0, x = 0, y = 0;
   for (size_t i = 0; i < strlen(str); i++) {
     char c = str[i];
     if (isdigit(c)) {
