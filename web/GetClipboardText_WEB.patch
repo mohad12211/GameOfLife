@@ -1,0 +1,42 @@
+diff --git a/src/platforms/rcore_web.c b/src/platforms/rcore_web.c
+index d8fa543..0d3692f 100644
+--- a/src/platforms/rcore_web.c
++++ b/src/platforms/rcore_web.c
+@@ -405,26 +405,20 @@ void SetClipboardText(const char *text)
+     else EM_ASM({ navigator.clipboard.writeText(UTF8ToString($0)); }, text);
+ }
+ 
++
++EM_ASYNC_JS(char*, JSGetClipboardText, (), {
++    const text = await navigator.clipboard.readText();
++    const size = lengthBytesUTF8(text) + 1;
++    const str = _malloc(size);
++    stringToUTF8(text, str, size);
++    return str;
++});
++
+ // Get clipboard text content
+-// NOTE: returned string is allocated and freed by GLFW
++// NOTE: returned string must be freed with free()
+ const char *GetClipboardText(void)
+ {
+-/*
+-    // Accessing clipboard data from browser is tricky due to security reasons
+-    // The method to use is navigator.clipboard.readText() but this is an asynchronous method
+-    // that will return at some moment after the function is called with the required data
+-    emscripten_run_script_string("navigator.clipboard.readText() \
+-        .then(text => { document.getElementById('clipboard').innerText = text; console.log('Pasted content: ', text); }) \
+-        .catch(err => { console.error('Failed to read clipboard contents: ', err); });"
+-    );
+-
+-    // The main issue is getting that data, one approach could be using ASYNCIFY and wait
+-    // for the data but it requires adding Asyncify emscripten library on compilation
+-
+-    // Another approach could be just copy the data in a HTML text field and try to retrieve it
+-    // later on if available... and clean it for future accesses
+-*/
+-    return NULL;
++    return JSGetClipboardText();
+ }
+ 
+ // Show mouse cursor
