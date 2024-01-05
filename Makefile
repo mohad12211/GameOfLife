@@ -2,7 +2,7 @@ PROJECTNAME=GameOfLife
 
 ifndef PROFILE
 
-.PHONY: default all release debug clean run_release run_debug
+.PHONY: default all release debug clean run run_release run_debug
 
 default all: release
 

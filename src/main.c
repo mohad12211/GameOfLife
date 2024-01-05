@@ -98,7 +98,7 @@ void nextGeneration(CellEntry **aliveCellsPtr, CellEntry **nextAliveCellsPtr) {
   *nextAliveCellsPtr = NULL;
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
 
   SetTraceLogLevel(LOG_WARNING);
   InitWindow(WIDTH, HEIGHT, "GameOfLife");
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
     // Zoom
     float wheel = GetMouseWheelMove();
-    if (wheel != 0) {
+    if (!FloatEquals(wheel, 0.0f)) {
       Vector2 mouseWorldPosition = GetScreenToWorld2D(GetMousePosition(), camera);
       camera.target = mouseWorldPosition;
       camera.offset = GetMousePosition();
