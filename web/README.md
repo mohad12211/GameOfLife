@@ -1,0 +1,1 @@
+The [libraylib.a](web/libraylib.a) is a v5.0 static library for the web platofrm compiled with a [patch](web/GetClipboardText_WEB.patch) that fixes [`GetClipboardText`](https://github.com/raysan5/raylib/blob/ae50bfa2cc569c0f8d5bc4315d39db64005b1b08/src/platforms/rcore_web.c#L410-L428) on web.
