@@ -40,7 +40,7 @@ CellEntry *parseRLE(const char *str) {
     if (isdigit(c)) {
       n = n * 10 + (c - '0');
     } else if (c == '$') {
-      y++;
+      y += n != 0 ? n : 1;
       x = 0;
       n = 0;
     } else if (c == 'b') {
